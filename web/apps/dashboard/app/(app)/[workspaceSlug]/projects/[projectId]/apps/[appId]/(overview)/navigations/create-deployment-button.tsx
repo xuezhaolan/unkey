@@ -196,7 +196,12 @@ export const CreateDeploymentButton = ({
     },
     onError(err) {
       console.error(err);
-      toast.error(err.message);
+      const friendlyMessage =
+        err.data?.code === "PRECONDITION_FAILED" &&
+        err.message === "No GitHub repository connected to this app"
+          ? "Connect a GitHub repository to this app before creating a git-based deployment."
+          : err.message;
+      toast.error(friendlyMessage);
     },
   });
 
