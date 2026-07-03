@@ -1,0 +1,87 @@
+---
+title: "Deployment requirements"
+description: "Operational expectations for running krane in a Kubernetes cluster"
+---
+
+Krane is intended to run as a single active instance per Kubernetes cluster. It reconciles desired state from the control plane into cluster resources, reports status upstream, and optionally decrypts workload secrets. This document captures the deployment assumptions that surfaced in issue #6276 so operators understand what is required and what is explicitly not required.
+
+## Supported operating model
+
+Run one Krane deployment per cluster/region.
+
+That single active instance is expected to:
+
+- hold the Kubernetes API credentials for the cluster
+- keep a `WatchDeploymentChanges` stream open to the control plane
+- apply deployment state changes and Cilium policies
+- report workload status back to the control plane
+- serve the in-cluster secrets RPC when Vault integration is enabled
+
+Krane is not designed around leader election or active-active reconciliation. If you scale it above one steady-state replica, more than one controller can try to watch and apply the same desired state at the same time.
+
+## Availability expectations
+
+Krane does not need a full high-availability control-plane style setup.
+
+Short downtime is acceptable:
+
+- desired-state changes will not be applied while Krane is unavailable
+- status reporting pauses while the agent is down
+- workloads already running in Kubernetes continue to run
+- when Krane starts again, it reconnects and resynchronizes desired state
+
+This works because Krane's control loop is built around a replayable stream plus periodic resync. On reconnect, it can recover from missed incremental updates by replaying from the cursor and by triggering a full sync safety net.
+
+## Failover behavior
+
+A replacement instance can take over after a crash, restart, node drain, or rollout.
+
+Brief overlap between the old pod and the new pod is acceptable during failover or rollout, but it should be transient rather than a steady-state configuration. The operational goal is still one active Krane instance per cluster once the rollout settles.
+
+Recommended deployment behavior:
+
+- use a Deployment with a single replica
+- let Kubernetes restart the pod on failure
+- expect a short reconciliation pause during restart
+- avoid intentionally running multiple long-lived replicas for redundancy
+
+## What operators must provide
+
+At minimum, a Krane deployment needs:
+
+- cluster-local Kubernetes API access for creating, updating, deleting, and watching managed resources
+- control-plane connectivity and credentials (`control.url`, `control.token`)
+- a stable `region` value matching the control-plane region mapping
+- an `instance_id` for logs and tracing
+- Vault connectivity and credentials only if the secrets service is enabled
+
+See [Krane configuration](/architecture/services/krane/configuration) for the config fields and [Deployment sync](/architecture/services/control-plane/worker/deployment-sync) for the upstream state stream.
+
+## Operational implications
+
+Because Krane is single-instance by design, operators should treat it as a cluster agent instead of a horizontally scaled API service.
+
+That means:
+
+- prefer fast restart and clear observability over replica-based HA
+- monitor whether the pod is running and connected upstream
+- expect missed work to be caught up after restart rather than prevented by hot standby replicas
+- plan maintenance windows around a brief pause in reconciliation, not around traffic serving
+
+## Non-goals
+
+This operating model does not currently guarantee:
+
+- active-active Krane replicas
+- leader election between multiple replicas
+- zero-gap reconciliation during pod replacement
+- independent HA for the secrets RPC beyond the single Krane pod
+
+If those guarantees become required later, the runtime would need explicit coordination semantics rather than simply increasing the replica count.
+
+## Related docs
+
+- [Overview](/architecture/services/krane/overview)
+- [Krane configuration](/architecture/services/krane/configuration)
+- [Deployment sync](/architecture/services/control-plane/worker/deployment-sync)
+- [Secrets service](/architecture/services/krane/secrets)
