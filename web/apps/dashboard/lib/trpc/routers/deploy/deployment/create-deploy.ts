@@ -17,6 +17,7 @@ import {
   parseDeployRef,
   validateSourceRepo,
 } from "./resolve-deploy-ref";
+import { MISSING_REPO_DEPLOY_MESSAGE } from "./create-deploy-message";
 
 const baseInput = z.object({
   projectId: z.string().min(1, "Project ID is required"),
@@ -96,7 +97,7 @@ export const createDeploy = workspaceProcedure
         if (!repoConn) {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
-            message: "No GitHub repository connected to this app",
+            message: MISSING_REPO_DEPLOY_MESSAGE,
           });
         }
 
