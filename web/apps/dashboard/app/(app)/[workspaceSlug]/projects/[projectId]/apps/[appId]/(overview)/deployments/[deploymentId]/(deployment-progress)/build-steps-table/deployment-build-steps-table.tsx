@@ -1,6 +1,7 @@
 "use client";
 
 import { StreamingTable } from "@/components/streaming-table";
+import { useDelayLoader } from "@/hooks/use-delay-loader";
 import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
@@ -29,6 +30,7 @@ export const DeploymentBuildStepsTable: React.FC<Props> = ({
 }) => {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
+  const showDelayedLoadingState = useDelayLoader(isLoading, 800);
 
   const stepId = focusStep?.stepId;
   const tick = focusStep?.tick;
@@ -104,8 +106,9 @@ export const DeploymentBuildStepsTable: React.FC<Props> = ({
             <Empty.Icon className="w-auto" />
             <Empty.Title>Build Steps</Empty.Title>
             <Empty.Description className="text-left">
-              No build steps found for this deployment. Build steps will appear here once the
-              deployment starts building.
+              {showDelayedLoadingState
+                ? "Build logs can take a few seconds to stream in on slower deployments."
+                : "No build steps found for this deployment. Build steps will appear here once the deployment starts building."}
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <a
