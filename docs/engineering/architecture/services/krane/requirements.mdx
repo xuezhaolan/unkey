@@ -1,0 +1,59 @@
+---
+title: "Deployment requirements"
+description: "Cluster and control-plane prerequisites for running krane"
+---
+
+Krane runs with direct Kubernetes API access and reconciles user workloads in the
+cluster. Before starting a Krane instance, make these dependencies available.
+
+## Cluster requirements
+
+The workload cluster must support every resource Krane applies or watches.
+
+- Kubernetes API access from the Krane pod.
+- A Krane service account with RBAC to get, list, watch, create, update, patch,
+  and delete the resources Krane manages:
+  - namespaces
+  - service accounts
+  - pods
+  - ReplicaSets
+  - Secrets for registry pulls and decrypted workload environment variables
+  - HorizontalPodAutoscalers
+  - PodDisruptionBudgets
+  - CiliumNetworkPolicies
+- Cilium installed with the CiliumNetworkPolicy custom resource available.
+  Krane applies a per-deployment policy for workload ingress.
+- gVisor support for workloads, because Krane applies `RuntimeClassName: gvisor`
+  to user workload pods.
+- Nodes labeled and tainted for the untrusted workload pool. Krane schedules
+  workloads onto nodes matching `node-class=untrusted`.
+- A StorageClass matching the configured `storage_class_name` when deployments
+  request ephemeral volumes.
+
+## Control-plane requirements
+
+Krane needs a registered region identity and credentials before it can consume
+desired state from the control plane.
+
+- A reachable control API URL for the `control.url` setting.
+- A control API token for the `control.token` setting.
+- A `platform` and `region` pair that matches the control-plane region
+  registration. Krane sends both values as the request `RegionKey`.
+- One active Krane instance per Kubernetes cluster and `(platform, region)` pair.
+
+## Optional dependencies
+
+These dependencies are required only when a deployment uses the related feature.
+
+- Vault is required when workloads need encrypted environment variables. Set
+  `vault.url` and `vault.token` so Krane can decrypt those values before
+  applying workload Secrets.
+- Registry credentials are required when workloads pull private images. Krane
+  uses the registry config to create the image pull Secret referenced by
+  workload pods.
+
+## Related docs
+
+- [Overview](/architecture/services/krane/overview)
+- [Deployment model](/architecture/services/krane/deployment)
+- [Configuration](/architecture/services/krane/configuration)

@@ -158,6 +158,7 @@
                 "pages": [
                   "architecture/services/krane/overview",
                   "architecture/services/krane/deployment",
+                  "architecture/services/krane/requirements",
                   "architecture/services/krane/secrets",
                   "architecture/services/krane/configuration"
                 ]
