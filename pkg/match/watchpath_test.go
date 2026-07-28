@@ -88,3 +88,19 @@ func TestMatchWatchPaths(t *testing.T) {
 		})
 	}
 }
+
+func TestMatchWatchPathsErr(t *testing.T) {
+	matched, err := MatchWatchPathsErr([]string{"src/**"}, []string{"src/main.go"})
+	require.NoError(t, err)
+	require.True(t, matched)
+
+	matched, err = MatchWatchPathsErr([]string{"[invalid"}, []string{"src/main.go"})
+	require.Error(t, err)
+	require.False(t, matched)
+	require.Contains(t, err.Error(), "invalid watch path pattern")
+}
+
+func TestValidateWatchPaths(t *testing.T) {
+	require.NoError(t, ValidateWatchPaths([]string{"src/**", "*.go"}))
+	require.Error(t, ValidateWatchPaths([]string{"src/**", "[invalid"}))
+}

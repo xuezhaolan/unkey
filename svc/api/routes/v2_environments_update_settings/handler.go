@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -124,6 +125,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Meta: openapi.Meta{RequestId: s.RequestID()},
 			Data: openapi.EmptyResponse{},
 		})
+	}
+
+	if req.WatchPaths != nil {
+		if err := match.ValidateWatchPaths(*req.WatchPaths); err != nil {
+			return fault.Wrap(
+				err,
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("invalid watch path pattern"),
+				fault.Public("One or more watch path patterns are invalid."),
+			)
+		}
 	}
 
 	if hasRuntime {

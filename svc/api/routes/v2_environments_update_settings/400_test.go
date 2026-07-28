@@ -69,8 +69,9 @@ func TestUpdateSettings400(t *testing.T) {
 		{name: "healthcheck path bad chars", req: handler.Request{Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{Method: "GET", Path: "/health check"})}},
 		{name: "healthcheck path traversal", req: handler.Request{Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{Method: "GET", Path: "/../etc/passwd"})}},
 
-		// Array caps (spec).
+		// Array caps and invalid watch path glob syntax.
 		{name: "watchPaths over limit", req: handler.Request{WatchPaths: ptr(overLimit(11))}},
+		{name: "watchPaths invalid pattern", req: handler.Request{WatchPaths: ptr([]string{"[invalid"})}},
 		{name: "command over limit", req: handler.Request{Command: ptr(overLimit(11))}},
 		{name: "regions over limit", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{
 			regionSetting("r1", 1, 2), regionSetting("r2", 1, 2), regionSetting("r3", 1, 2),

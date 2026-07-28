@@ -131,7 +131,24 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		}
 
 		// Watch paths: skip if configured patterns don't match changed files
-		if !match.MatchWatchPaths(buildSettings.WatchPaths, changedFiles) {
+		watchPathsMatch, watchPathsErr := match.MatchWatchPathsErr(buildSettings.WatchPaths, changedFiles)
+		if watchPathsErr != nil {
+			logger.Warn("skipping deployment: invalid watch path configuration",
+				"app_id", app.ID,
+				"watch_paths", buildSettings.WatchPaths,
+				"changed_files", changedFiles,
+				"error", watchPathsErr,
+			)
+
+			if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+				_, err := insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, mysqltype.DeploymentsStatusSkipped)
+				return err
+			}, restate.WithName("insert skipped deployment")); err != nil {
+				logger.Error("failed to insert skipped deployment", "app_id", app.ID, "error", err)
+			}
+			continue
+		}
+		if !watchPathsMatch {
 			logger.Info("skipping deployment: watch paths don't match changed files",
 				"app_id", app.ID,
 				"watch_paths", buildSettings.WatchPaths,
