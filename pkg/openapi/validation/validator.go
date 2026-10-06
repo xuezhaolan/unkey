@@ -86,7 +86,7 @@ func (v *Validator) Validate(r *http.Request) *Result {
 		result.Detail = err.Message
 		for _, verr := range err.SchemaValidationErrors {
 			result.Errors = append(result.Errors, ValidationError{
-				Message:  verr.Reason,
+				Message:  formatSchemaValidationReason(verr.Reason),
 				Location: verr.KeywordLocation,
 				Fix:      nil,
 			})
